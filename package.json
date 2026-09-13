@@ -81,6 +81,14 @@
         "enablement": "false"
       }
     ],
+    "keybindings": [
+      {
+        "command": "siniJump.showInPdf",
+        "key": "ctrl+alt+b",
+        "mac": "cmd+alt+b",
+        "when": "editorLangId == lean4"
+      }
+    ],
     "menus": {
       "commandPalette": [
         {

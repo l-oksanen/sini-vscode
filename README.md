@@ -28,8 +28,9 @@ attribute, and the jump hangs off that text. Here the file *is* the label:
 
 So there is no text to point at, and the affordance is a **code lens on the
 first line** — which is also the honest shape of the fact. It is about the file,
-not about any line of it. **sini: Show this node's statement in the PDF** in the
-command palette does the same thing from the keyboard.
+not about any line of it. The same jump is <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd>
+(<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd> on a Mac), or **sini: Show this
+node's statement in the PDF** in the command palette.
 
 `NonVacuity.lean` and `Examples.lean` get their node's lens too. They belong to
 the node, and a reader in one has the same question.
@@ -103,6 +104,17 @@ file under `defs/` is ignored rather than misread.
 
 `.lake` matters. A project's Lake packages hold every Mathlib source, and
 searching them would cost far more than the rest of the workspace put together.
+
+## Keys
+
+| command | key | |
+|---|---|---|
+| `siniJump.showInPdf` | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd> | show this node's statement in the PDF |
+
+Bound only while a Lean file is focused, so it takes
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd> away from nothing else — LaTeX
+Workshop's build, for one, claims it in `.tex` files and keeps it. Rebind under
+*Preferences: Open Keyboard Shortcuts*, searching for `siniJump`.
 
 ## As a library
 

@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
-import { register as registerJumps } from './jump';
+import { register as registerLinks } from './jump';
 import { openInPdf, register as registerCommand } from './links';
 import { nodeOf } from './nodes';
 import { Workspace } from './workspace';
 
-/** The palette entry, for a reader who would rather not reach for the lens. */
+/** The other direction, which has no text to click: the file *is* the label. */
 const SHOW = 'siniJump.showInPdf';
 
 function showInPdf(workspace: Workspace): vscode.Disposable {
@@ -17,6 +17,13 @@ function showInPdf(workspace: Workspace): vscode.Disposable {
             void vscode.window.showInformationMessage(
                 'This file is not a blueprint node: a node is a `.lean` file under ' +
                     '`defs/` or `thms/` in the library.',
+            );
+            return;
+        }
+        if (!(await workspace.hasBlueprint(folder))) {
+            void vscode.window.showWarningMessage(
+                'No `blueprint/blueprint.tex` in this workspace folder, so there is ' +
+                    'no blueprint to show.',
             );
             return;
         }
@@ -36,7 +43,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const workspace = new Workspace();
     context.subscriptions.push(
         workspace,
-        ...registerJumps(workspace),
+        registerLinks(workspace),
         registerCommand(),
         showInPdf(workspace),
         // The setting changes what a scan finds, so the answer from before the

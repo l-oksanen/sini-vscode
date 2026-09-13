@@ -11,7 +11,9 @@ navigable without reading a single Lean declaration.
 | where | gesture | goes to |
 |---|---|---|
 | `.tex` | ctrl+click `\label{thm_svd}` | `…/thms/_thm_svd.lean` |
-| `.lean` | the lens on the first line | the statement in the PDF |
+| `.lean` | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd>, or the palette | the statement in the PDF |
+
+That is the whole of it. Two jumps, no decoration.
 
 From a label in the PDF, ctrl+click in the viewer lands on the `\label` (LaTeX
 Workshop's own reverse search), and ctrl+click there reaches the Lean. The same
@@ -26,38 +28,47 @@ attribute, and the jump hangs off that text. Here the file *is* the label:
                                                  ^^^^^^^^^^^^^^^^^^^^^^
                                                  \label{def_moore_penrose}
 
-So there is no text to point at, and the affordance is a **code lens on the
-first line** — which is also the honest shape of the fact. It is about the file,
-not about any line of it. The same jump is <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd>
-(<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd> on a Mac), or **sini: Show this
-node's statement in the PDF** in the command palette.
+So there is nothing to point at, and nothing that needs pointing at: the
+filename already says which node you are in. The jump is therefore a key —
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd>, <kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>B</kbd>
+on a Mac — or **sini: Show this node's statement in the PDF** in the command
+palette. It works from `NonVacuity.lean` and `Examples.lean` too, which belong
+to the node beside them.
 
-`NonVacuity.lean` and `Examples.lean` get their node's lens too. They belong to
-the node, and a reader in one has the same question.
-
-The lens opens the blueprint source at the statement, asks LaTeX Workshop to
-sync the viewer to it, and returns focus to the Lean file. It needs a PDF
-already built with SyncTeX data, so compile the blueprint once first. Without
-LaTeX Workshop the source is still opened at the right line, and the extension
-says why the rest did not happen.
+It opens the blueprint source at the statement, asks LaTeX Workshop to sync the
+viewer to it, and returns focus to the Lean file. It needs a PDF already built
+with SyncTeX data, so compile the blueprint once first. Without LaTeX Workshop
+the source is still opened at the right line, and the extension says why the
+rest did not happen.
 
 ## It needs no build and no tools
 
 Both directions are answered by the filesystem. A node's file is found by
 encoding the label and looking for the name; a node's statement is found by
-scanning the `.tex` for the `\label`. Nothing is compiled, no external program
-runs, and a project that has never been built navigates exactly as well as one
-that has.
+scanning the blueprint for the `\label`. Nothing is compiled, no external
+program runs, and a project that has never been built navigates exactly as well
+as one that has.
 
-The prose scan is cached per workspace folder and redone when a `.tex` or
-`.lean` file changes on disk. An open unsaved editor is read from the editor
-rather than from disk, so a label you have just typed is found as soon as the
-index is next rebuilt.
+The scan follows the document rather than globbing: `blueprint/blueprint.tex`
+and whatever it `\input`s, transitively. That is cheaper than reading every
+`.tex` in the workspace, and more correct — a paper draft elsewhere in the
+repository has `\label`s of its own, and one of them shadowing a node's would be
+a jump that lands in the wrong document with nothing to show it did. `\input` is
+what the data model specifies, so `\include` is not followed.
 
-In a folder with no library filesystem, the extension offers no links at all. A
-`\label` is ordinary LaTeX that most projects have never heard of this extension
-about, and underlining every one of them to then resolve none is worse than
-doing nothing.
+The scan is cached per workspace folder and redone when a `.tex` or `.lean` file
+changes on disk. An open unsaved editor is read from the editor rather than from
+disk, so a label you have just typed is found as soon as the index is next
+rebuilt.
+
+## Gating
+
+Everything is off unless the workspace folder has **`blueprint/blueprint.tex`**,
+which is where the data model says a blueprint is. One `stat` decides it.
+
+That matters mostly for the `.tex` side: a `\label` is ordinary LaTeX that most
+projects have never heard of this extension about, and underlining every one of
+them to then resolve none is worse than doing nothing.
 
 A `\label` that no node answers — an equation, a part, a chapter, a node not yet
 formalized — simply does not resolve. The link is left pointing nowhere rather
@@ -80,7 +91,7 @@ Either level may be absent, so the depth is not fixed. A node is therefore
 recognised by the `defs` or `thms` directory *above* it rather than by locating
 the library root: counting from the bottom needs no configuration, and those two
 names are not configurable. `Auxiliary`, the root module, and anything outside
-the library are not nodes and get no lens.
+the library are not nodes, and the jump says so rather than guessing.
 
 The filename is the label under the encoding of the data model — `_` prefix,
 `[a-z0-9_]` preserved, everything else `'XX` in uppercase hex UTF-8 — so
@@ -91,10 +102,10 @@ file under `defs/` is ignored rather than misread.
 ## Requirements
 
 - [`leanprover.lean4`](https://marketplace.visualstudio.com/items?itemName=leanprover.lean4),
-  for the `lean4` language the lens attaches to.
+  for the `lean4` language the command is offered in.
 - [`james-yu.latex-workshop`](https://marketplace.visualstudio.com/items?itemName=James-Yu.latex-workshop),
   for the jump into the PDF. Optional: without it, everything else still works
-  and the lens opens the `.tex` at the statement.
+  and the jump opens the `.tex` at the statement.
 
 ## Settings
 

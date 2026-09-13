@@ -1,12 +1,11 @@
 import * as vscode from 'vscode';
-import { OPEN_IN_PDF } from './links';
-import { Hit, nodeOf, texLabelsInLine } from './nodes';
+import { Hit, texLabelsInLine } from './nodes';
 import { Workspace } from './workspace';
 
 /**
  * A link that knows which label it is about, so the target can be worked out
  * later. `resolveDocumentLink` runs only when a link is actually pointed at,
- * which is what makes this affordable: a blueprint with 294 labels costs one
+ * which is what makes this affordable: a blueprint with 321 labels costs one
  * regex scan of the open document, and the index is consulted for exactly the
  * one label the reader points at.
  */
@@ -22,14 +21,14 @@ class LabelLink extends vscode.DocumentLink {
  * Ctrl+click a `\label` and go to the Lean file that formalizes it.
  *
  * The gesture is borrowed deliberately: it is already what a PDF viewer uses to
- * come back to the `.tex`, so the same two fingers carry a reader all the way
- * round -- PDF to prose to Lean.
+ * come back to the `.tex`, so the same two fingers carry a reader from the PDF
+ * to the prose to the Lean.
  */
 function texLinks(workspace: Workspace): vscode.DocumentLinkProvider<LabelLink> {
     return {
         async provideDocumentLinks(document) {
             const folder = vscode.workspace.getWorkspaceFolder(document.uri);
-            if (folder === undefined || !(await workspace.hasLibrary(folder))) {
+            if (folder === undefined || !(await workspace.hasBlueprint(folder))) {
                 return [];
             }
             const out: LabelLink[] = [];
@@ -54,52 +53,6 @@ function texLinks(workspace: Workspace): vscode.DocumentLinkProvider<LabelLink> 
     };
 }
 
-/**
- * The other direction, which has no text to click.
- *
- * Under the old system a Lean file carried the label in an attribute, and the
- * jump hung off that. Now the file *is* the label, and there is nothing in the
- * text to point at -- so the affordance is a lens on the first line, which is
- * also the honest shape of the fact: it is about the file, not about any line
- * of it.
- *
- * A `NonVacuity.lean` or `Examples.lean` gets the same lens as its node. It
- * belongs to the node, and a reader in one has the same question.
- */
-function leanLenses(workspace: Workspace): vscode.CodeLensProvider {
-    return {
-        async provideCodeLenses(document) {
-            const folder = vscode.workspace.getWorkspaceFolder(document.uri);
-            if (folder === undefined) {
-                return [];
-            }
-            const node = nodeOf(document.uri.path);
-            if (node === undefined) {
-                return [];
-            }
-            const prose = await workspace.prose(folder, node.label);
-            if (prose === undefined) {
-                // The library has a file for a label the blueprint does not
-                // write. That is a project error the checker reports; showing a
-                // lens that cannot go anywhere would only repeat it badly.
-                return [];
-            }
-            const at = new vscode.Range(0, 0, 0, 0);
-            return [
-                new vscode.CodeLens(at, {
-                    title: `${node.label} in the blueprint`,
-                    tooltip: 'Open the statement in the PDF viewer',
-                    command: OPEN_IN_PDF,
-                    arguments: [{ path: prose.uri.fsPath, line: prose.line }],
-                }),
-            ];
-        },
-    };
-}
-
-export function register(workspace: Workspace): vscode.Disposable[] {
-    return [
-        vscode.languages.registerDocumentLinkProvider('latex', texLinks(workspace)),
-        vscode.languages.registerCodeLensProvider('lean4', leanLenses(workspace)),
-    ];
+export function register(workspace: Workspace): vscode.Disposable {
+    return vscode.languages.registerDocumentLinkProvider('latex', texLinks(workspace));
 }

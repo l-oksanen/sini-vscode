@@ -1,0 +1,107 @@
+{
+  "name": "sini-vscode-jump",
+  "displayName": "sini: Lean ⇄ LaTeX blueprint jump",
+  "description": "Ctrl+click a LaTeX \\label to reach the Lean file that formalizes it, and go back to the statement in the PDF.",
+  "version": "0.1.0",
+  "publisher": "l-oksanen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/l-oksanen/sini-vscode-jump.git"
+  },
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "lean",
+    "lean4",
+    "latex",
+    "blueprint",
+    "sini"
+  ],
+  "activationEvents": [
+    "onLanguage:lean4",
+    "onLanguage:latex"
+  ],
+  "main": "./out/extension.js",
+  "exports": {
+    ".": {
+      "types": "./out/extension.d.ts",
+      "default": "./out/extension.js"
+    },
+    "./encoding": {
+      "types": "./out/encoding.d.ts",
+      "default": "./out/encoding.js"
+    },
+    "./nodes": {
+      "types": "./out/nodes.d.ts",
+      "default": "./out/nodes.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "encoding": [
+        "out/encoding.d.ts"
+      ],
+      "nodes": [
+        "out/nodes.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "out",
+    "README.md",
+    "LICENSE"
+  ],
+  "contributes": {
+    "configuration": {
+      "title": "sini jump",
+      "properties": {
+        "siniJump.exclude": {
+          "type": "string",
+          "default": "**/{.lake,.git,node_modules}/**",
+          "scope": "window",
+          "markdownDescription": "Files not searched. `.lake` matters: a project's Lake packages hold every Mathlib source, and searching them would cost far more than the rest of the workspace put together."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "siniJump.showInPdf",
+        "title": "Show this node's statement in the PDF",
+        "category": "sini"
+      },
+      {
+        "command": "siniJump.openInPdf",
+        "title": "Show this statement in the PDF",
+        "category": "sini",
+        "enablement": "false"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "siniJump.showInPdf",
+          "when": "editorLangId == lean4"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf out",
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "npm run clean && tsc -p . && node test/encoding.test.js && node test/nodes.test.js && node test/links.test.js",
+    "prepare": "npm run clean && tsc -p .",
+    "package": "npm run clean && tsc -p . && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.96.0",
+    "@vscode/vsce": "^3.9.2",
+    "typescript": "^5.5.0"
+  }
+}

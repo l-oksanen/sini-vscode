@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { nodeOf, texLabelsInLine } from './nodes';
+import { SPEC, nodeOf, texLabelsInLine, uncommented } from './nodes';
 
 /** The blueprint, relative to a workspace folder. The data model fixes this path. */
 export const BLUEPRINT = ['blueprint', 'blueprint.tex'];
@@ -15,12 +15,12 @@ interface Index {
     blueprint: boolean;
     /** label -> the `\label{...}` that writes it. */
     prose: Map<string, Location>;
-    /** label -> the `.lean` file that formalizes it. */
+    /** label -> the `Spec.lean` that formalizes it. */
     files: Map<string, vscode.Uri>;
 }
 
-/** `\input{...}`, the blueprint's only way of reaching another file. */
-const INPUT = /\\input\s*\{([^}\n]*)\}/g;
+/** `\input` and `\include`, the two ways the blueprint reaches another file. */
+const INPUT = /\\(?:input|include)\s*\{([^}\n]*)\}/g;
 
 /**
  * A file's lines, preferring an editor's copy over the disk's.
@@ -48,14 +48,8 @@ async function linesOf(
     }
 }
 
-/** A line with its comment removed, so a commented-out `\input` is not followed. */
-function uncommented(line: string): string {
-    const at = line.search(/(^|[^\\])%/);
-    return at < 0 ? line : line.slice(0, at === 0 ? 0 : at + 1);
-}
-
 /**
- * The blueprint and everything it `\input`s, in order.
+ * The blueprint and everything it reads, in order.
  *
  * Following the document is not merely cheaper than globbing every `.tex` in
  * the workspace -- it is more correct. A paper draft elsewhere in the
@@ -85,7 +79,10 @@ async function documents(
                     continue;
                 }
                 // `\input{macros}` means `macros.tex`, resolved against the
-                // blueprint's own directory as a LaTeX run would.
+                // blueprint's own directory as a LaTeX run would. `\include`
+                // is resolved the same way, and both are followed: the data
+                // model says the blueprint is `blueprint.tex` together with
+                // the files it reads through either.
                 await visit(vscode.Uri.joinPath(
                     directory, name.endsWith('.tex') ? name : `${name}.tex`));
             }
@@ -106,18 +103,29 @@ async function documents(
 export class Workspace implements vscode.Disposable {
     private folders = new Map<string, Promise<Index>>();
     private watcher: vscode.FileSystemWatcher;
+    private changed = new vscode.EventEmitter<void>();
+
+    /**
+     * Fires when the index is dropped.
+     *
+     * A link is resolved when it is pointed at, so it needs no telling. A lens
+     * is not: it is drawn once and stays on screen, so a label added to the
+     * blueprint would not reach it until the file was reopened.
+     */
+    readonly onDidChange = this.changed.event;
 
     constructor() {
         this.watcher = vscode.workspace.createFileSystemWatcher('**/*.{tex,lean}');
-        const forget = () => this.folders.clear();
+        const forget = () => this.forget();
         this.watcher.onDidChange(forget);
         this.watcher.onDidCreate(forget);
         this.watcher.onDidDelete(forget);
     }
 
-    /** Configuration changed under `siniJump`, so a scan would answer differently. */
+    /** The index no longer describes the workspace, so drop it. */
     forget(): void {
         this.folders.clear();
+        this.changed.fire();
     }
 
     private index(folder: vscode.WorkspaceFolder): Promise<Index> {
@@ -162,6 +170,7 @@ export class Workspace implements vscode.Disposable {
 
     dispose(): void {
         this.watcher.dispose();
+        this.changed.dispose();
         this.folders.clear();
     }
 }
@@ -192,20 +201,21 @@ async function build(folder: vscode.WorkspaceFolder): Promise<Index> {
         });
     }
 
-    // Only the node files themselves, not their `NonVacuity.lean` satellites:
-    // this map answers "where is the node", and the node is the file named
-    // after it.
+    // The Specs, which is where a reader coming from the prose wants to land:
+    // a node's facade is generated and holds nothing but a `public import`,
+    // and every node directory holds a Spec. Globbing them also names the node
+    // directories without needing to know how deep they are.
     const exclude = vscode.workspace
         .getConfiguration('siniJump', folder)
         .get<string>('exclude', '');
     const lean = await vscode.workspace.findFiles(
-        new vscode.RelativePattern(folder, '**/{defs,thms}/_*.lean'),
+        new vscode.RelativePattern(folder, `**/_*/${SPEC}`),
         exclude === '' ? null : exclude);
 
     const files = new Map<string, vscode.Uri>();
     for (const uri of [...lean].sort((a, b) => a.fsPath.localeCompare(b.fsPath))) {
         const node = nodeOf(uri.path);
-        if (node !== undefined && node.satellite === undefined && !files.has(node.label)) {
+        if (node !== undefined && node.role === 'spec' && !files.has(node.label)) {
             files.set(node.label, uri);
         }
     }

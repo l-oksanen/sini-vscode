@@ -1,6 +1,12 @@
 import * as vscode from 'vscode';
 
-export const OPEN_IN_PDF = 'siniJump.openInPdf';
+/**
+ * The one command: what the lens, the key and the palette all run.
+ *
+ * It takes no argument and works from the active editor, so there is nothing
+ * for a caller to get wrong and one path for a failure to be reported on.
+ */
+export const SHOW_IN_PDF = 'siniJump.showInPdf';
 
 /** The LaTeX Workshop command that drives a forward search. */
 const SYNCTEX = 'latex-workshop.synctexto';
@@ -70,8 +76,4 @@ export async function openInPdf(target: Statement): Promise<void> {
             preview: false,
         });
     }
-}
-
-export function register(): vscode.Disposable {
-    return vscode.commands.registerCommand(OPEN_IN_PDF, (t: Statement) => openInPdf(t));
 }

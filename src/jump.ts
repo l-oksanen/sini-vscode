@@ -53,6 +53,7 @@ function texLinks(workspace: Workspace): vscode.DocumentLinkProvider<LabelLink> 
     };
 }
 
+
 export function register(workspace: Workspace): vscode.Disposable {
     return vscode.languages.registerDocumentLinkProvider('latex', texLinks(workspace));
 }

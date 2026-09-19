@@ -65,6 +65,12 @@
           "default": "**/{.lake,.git,node_modules}/**",
           "scope": "window",
           "markdownDescription": "Files not searched. `.lake` matters: a project's Lake packages hold every Mathlib source, and searching them would cost far more than the rest of the workspace put together."
+        },
+        "siniJump.state": {
+          "type": "string",
+          "default": ".vscode/sini-state.json",
+          "scope": "window",
+          "markdownDescription": "A JSON file, relative to the workspace folder, giving each node's state as a colour for its label. `nodes` maps a label — or a path segment, which colours everything under it — to a key of `palette`, or to a colour of its own. Watched, so a generator rewriting it recolours the labels without a reload. Missing is the ordinary case: the labels then show uncoloured."
         }
       }
     },
@@ -73,12 +79,6 @@
         "command": "siniJump.showInPdf",
         "title": "Show this node's statement in the PDF",
         "category": "sini"
-      },
-      {
-        "command": "siniJump.openInPdf",
-        "title": "Show this statement in the PDF",
-        "category": "sini",
-        "enablement": "false"
       }
     ],
     "keybindings": [
@@ -102,7 +102,7 @@
     "clean": "rm -rf out",
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
-    "test": "npm run clean && tsc -p . && node test/encoding.test.js && node test/nodes.test.js && node test/links.test.js",
+    "test": "npm run clean && tsc -p . && node test/encoding.test.js && node test/nodes.test.js && node test/state.test.js && node test/links.test.js",
     "prepare": "npm run clean && tsc -p .",
     "package": "npm run clean && tsc -p . && vsce package"
   },

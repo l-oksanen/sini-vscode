@@ -1,22 +1,21 @@
 import * as vscode from 'vscode';
 import { register as registerLinks } from './jump';
-import { openInPdf, register as registerCommand } from './links';
+import { Labels } from './label';
+import { SHOW_IN_PDF, openInPdf } from './links';
 import { nodeOf } from './nodes';
 import { Workspace } from './workspace';
 
-/** The other direction, which has no text to click: the file *is* the label. */
-const SHOW = 'siniJump.showInPdf';
-
 function showInPdf(workspace: Workspace): vscode.Disposable {
-    return vscode.commands.registerCommand(SHOW, async () => {
+    return vscode.commands.registerCommand(SHOW_IN_PDF, async () => {
         const editor = vscode.window.activeTextEditor;
         const folder =
             editor && vscode.workspace.getWorkspaceFolder(editor.document.uri);
         const node = editor && nodeOf(editor.document.uri.path);
         if (!editor || !folder || !node) {
             void vscode.window.showInformationMessage(
-                'This file is not a blueprint node: a node is a `.lean` file under ' +
-                    '`defs/` or `thms/` in the library.',
+                'This file is not a blueprint node: a node is a directory in the ' +
+                    'library, and this is none of its `Spec.lean`, `API.lean`, ' +
+                    '`Helpers.lean`, `Meta.lean`, `Tests/`, or the facade beside it.',
             );
             return;
         }
@@ -44,7 +43,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         workspace,
         registerLinks(workspace),
-        registerCommand(),
+        new Labels(workspace),
         showInPdf(workspace),
         // The setting changes what a scan finds, so the answer from before the
         // change stops being the answer.

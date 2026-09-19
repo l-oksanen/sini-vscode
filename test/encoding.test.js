@@ -15,62 +15,62 @@ function check(what, got, want) {
     }
 }
 
-// ------------------------------------------------- the worked examples
+// ------------------------------------------------- the whole of the encoding
 
 for (const [label, name] of [
-    ['def:foo/bar', "_def'3Afoo'2Fbar"],
-    ['def_foo_bar', '_def_foo_bar'],
-    ['thm:main-result', "_thm'3Amain'2Dresult"],
+    ['def_clm', '_def_clm'],
     ['thm_main_result', '_thm_main_result'],
+    ['part_1_funcanal', '_part_1_funcanal'],
+    ['a', '_a'],
+    ['0', '_0'],
+    // A label may itself begin with `_`, and then the name has two: the prefix
+    // is added, never merged, which is what keeps the two directions inverse.
+    ['_x', '__x'],
 ]) {
     check(`encode ${label}`, encode(label), name);
     check(`decode ${name}`, decode(name), label);
-}
-
-// ------------------------------------------------- round trips
-
-for (const label of [
-    'def_clm', 'thm:cauchy-schwarz', 'a', '0', '_', 'x.y', "it's",
-    'äänekoski', '∞', 'a b', 'x{y}',
-]) {
     check(`round trip ${label}`, decode(encode(label)), label);
 }
 
-// A character outside the BMP: two bytes is the common case, four is the one
-// that catches a decoder splitting an escape run per escape.
-check('astral round trip', decode(encode('a𝕜b')), 'a𝕜b');
-check('astral encoding', encode('𝕜'), "_'F0'9D'95'9C");
-
 // ------------------------------------------------- what is refused
 
-// Uppercase is what keeps the encoding bijective; a label with one is an error
-// rather than something to fold.
-check('uppercase label', encode('Foo'), undefined);
-check('uppercase mid-label', encode('def_fun_calc_Y'), undefined);
-check('empty label', encode(''), undefined);
-check('isLabel', [isLabel('foo'), isLabel('Foo'), isLabel('')], [true, false, false]);
+// *Labels are simple* admits `a`-`z`, `0`-`9` and `_`, and nothing else: there
+// is no escape to fall back on, so a label outside that is not encodable at
+// all.
+for (const bad of [
+    'Foo',                 // uppercase, which folding would make ambiguous
+    'def_fun_calc_Y',
+    'def:foo/bar',         // the punctuation an older encoding escaped
+    'thm:main-result',
+    'x.y',                 // `.` would introduce a module component
+    "it's",
+    'a b',
+    'äänekoski',
+    '𝕜',
+    '',
+]) {
+    check(`encode refuses ${bad}`, encode(bad), undefined);
+    check(`isLabel ${bad}`, isLabel(bad), false);
+}
+check('isLabel', [isLabel('def_clm'), isLabel('_'), isLabel('0')], [true, true, true]);
 
 for (const bad of [
-    'def_foo',   // no prefix
-    '_',         // empty body
-    "_a'2",      // truncated escape
-    "_a'2g",     // not hex
-    "_a'2d",     // lowercase hex: `encode` emits uppercase
-    "_a'61",     // escapes `a`, which encodes as itself
-    '_a-b',      // a character `encode` never emits
-    "_'FF",      // not UTF-8
-    '_Foo',      // uppercase is never produced
+    'def_clm',             // no prefix
+    '_',                   // empty body
+    '_Foo',                // uppercase is never produced
+    '_a-b',                // a character `encode` never emits
+    "_thm'3Amain'2Dresult",  // the escapes of the older encoding
+    '_a.b',
 ]) {
     check(`decode refuses ${bad}`, decode(bad), undefined);
 }
 
-// The prefix is what keeps an encoded name clear of the reserved directories.
-for (const reserved of ['defs', 'thms', 'Auxiliary', 'NonVacuity', 'Examples']) {
+// The prefix is what keeps an encoded name clear of the reserved names: no
+// encoded name can equal one of these, so no file of a node directory can be
+// mistaken for a node.
+for (const reserved of ['Spec.lean', 'API', 'Helpers', 'Meta', 'Tests', 'Auxiliary']) {
     check(`${reserved} is not an encoded label`, decode(reserved), undefined);
 }
-
-// `.` must not introduce a module component.
-check('dot is escaped', encode('a.b').includes('.'), false);
 
 if (failed === 0) {
     console.log('ok: the encoding round-trips, and refuses what it cannot have made');

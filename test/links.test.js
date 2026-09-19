@@ -28,7 +28,7 @@ const vscode = {
     },
     window: {
         activeTextEditor: {
-            document: { path: '/home/x/proj/AutoIp/thms/_thm_picard.lean' },
+            document: { path: '/home/x/proj/AutoIp/_part_2_reg/_ch_12_picard/_thm_picard/Spec.lean' },
             viewColumn: 1,
         },
         showTextDocument: async (doc, opts) => { shown.push({ doc, opts }); },
@@ -72,7 +72,7 @@ const TEX = '/home/x/proj/tex/funcanal.tex';
     // And focus goes back where it came from: the reader asked to see the
     // statement in the PDF, not to be moved into a file they were not editing.
     check('focus returns to the Lean file',
-          shown[1].doc.path, '/home/x/proj/AutoIp/thms/_thm_picard.lean');
+          shown[1].doc.path, '/home/x/proj/AutoIp/_part_2_reg/_ch_12_picard/_thm_picard/Spec.lean');
     check('and the tab it returns to is not a preview', shown[1].opts.preview, false);
 
     // Without LaTeX Workshop the source is still opened at the right line, and

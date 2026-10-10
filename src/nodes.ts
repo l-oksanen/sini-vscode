@@ -11,14 +11,19 @@
  *                                    API.lean
  *                                    Helpers.lean
  *                                    Meta.lean
- *                                    Tests/NonVacuity.lean
+ *
+ * and its tests in a directory of the same path in the tests directory, the
+ * library's name with `Tests` appended:
+ *
+ *     <Lib>Tests/<outer>/<inner>/_thm_svd/NonVacuity.lean
  *
  * The organizational levels are encoded labels too -- `_part_1_funcanal`,
  * `_ch_08_svd` -- and there are at most two of them, either of which may be
  * absent. The depth is therefore not fixed, so a node is recognised from the
- * bottom: by the role its file name names, or by the `Tests` directory above
- * it. Those names are fixed by the data model, where counting from the top
- * would need the level list out of the project's configuration.
+ * bottom: by the role its file name names, or by the tests directory the
+ * encoded directories above it stand in. Those names are fixed by the data
+ * model, where counting from the top would need the level list out of the
+ * project's configuration.
  *
  * A level instance has no facade, which is what leaves a `_x.lean` unambiguous:
  * it is always a node's. Its directory, though, is named exactly as a node's
@@ -42,7 +47,11 @@ const ROLES = new Map<string, Role>([
 /** The module whose public declarations formalize the node. */
 export const SPEC = 'Spec.lean';
 
-/** The directory of a node's tests, whose modules may be named anything. */
+/**
+ * What the tests directory's name ends in: the library's name with this
+ * appended. A node's tests are under it, in a directory of the node's own
+ * path, and may be named anything.
+ */
 export const TESTS = 'Tests';
 
 /**
@@ -80,52 +89,39 @@ export function nodeOfPath(segments: readonly string[]): Node | undefined {
         return undefined;
     }
     const parent = segments[segments.length - 2];
-    const grandparent = segments[segments.length - 3];
-
-    // `<node>/Tests/<anything>.lean`. A test module is named for what it
-    // tests, not for the node, so the directory above it is what says which
-    // node that is. Checked first, for the same reason: the file name here
-    // carries no rule at all.
-    if (parent === TESTS && grandparent !== undefined) {
-        const label = decode(grandparent);
-        return label === undefined ? undefined : { label, role: 'test' };
-    }
     const role = ROLES.get(file);
     if (role !== undefined && parent !== undefined) {
         const label = decode(parent);
         return label === undefined ? undefined : { label, role };
     }
-    // The facade, beside the node directory and named after it.
-    const label = decode(file.slice(0, -'.lean'.length));
-    return label === undefined ? undefined : { label, role: 'facade' };
+    // The facade, beside the node directory and named after it. Before the
+    // tests, since a level instance's directory decodes as a node's does.
+    const facade = decode(file.slice(0, -'.lean'.length));
+    if (facade !== undefined) {
+        return { label: facade, role: 'facade' };
+    }
+    // `<Lib>Tests/<levels>/<node>/<anything>.lean`. A test module is named for
+    // what it tests, not for the node, so the directory above it is what says
+    // which node that is; and what makes it a test is the tree it is in. Above
+    // the node and its levels, all encoded, the first name that is not is the
+    // tests directory -- where, in the library, it is the library's own.
+    const label = parent === undefined ? undefined : decode(parent);
+    if (label === undefined) {
+        return undefined;
+    }
+    let i = segments.length - 3;
+    while (i >= 0 && decode(segments[i]) !== undefined) {
+        i--;
+    }
+    const tree = segments[i];
+    return tree !== undefined && tree.length > TESTS.length && tree.endsWith(TESTS)
+        ? { label, role: 'test' }
+        : undefined;
 }
 
 /** As above, from a path with either separator. */
 export function nodeOf(path: string): Node | undefined {
     return nodeOfPath(path.split(/[\\/]/));
-}
-
-/**
- * The line that opens the node's own section, if the file has one.
- *
- * A Spec whose body is wrapped in `section <label> … end <label>` gets a
- * symbol from Lean's own document symbol provider, and so a sticky scroll
- * header, without anything here contributing one. That is worth finding: it
- * is the line a reader sees when scrolled into the file, and so the line
- * worth marking.
- *
- * `namespace` counts too. It is the same gesture with a scope attached, and a
- * node that puts its declarations in a namespace of its own name has said the
- * same thing.
- */
-export function sectionLineIn(
-    lines: readonly string[],
-    label: string,
-): number | undefined {
-    // The label is `[a-z0-9_]`, so it goes into the pattern as itself.
-    const open = new RegExp(`^\\s*(?:section|namespace)\\s+${label}\\s*$`);
-    const at = lines.findIndex((line) => open.test(line));
-    return at < 0 ? undefined : at;
 }
 
 /** A `\label`, and the range that should be clickable. */

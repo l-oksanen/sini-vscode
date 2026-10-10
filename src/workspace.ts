@@ -103,16 +103,6 @@ async function documents(
 export class Workspace implements vscode.Disposable {
     private folders = new Map<string, Promise<Index>>();
     private watcher: vscode.FileSystemWatcher;
-    private changed = new vscode.EventEmitter<void>();
-
-    /**
-     * Fires when the index is dropped.
-     *
-     * A link is resolved when it is pointed at, so it needs no telling. A lens
-     * is not: it is drawn once and stays on screen, so a label added to the
-     * blueprint would not reach it until the file was reopened.
-     */
-    readonly onDidChange = this.changed.event;
 
     constructor() {
         this.watcher = vscode.workspace.createFileSystemWatcher('**/*.{tex,lean}');
@@ -125,7 +115,6 @@ export class Workspace implements vscode.Disposable {
     /** The index no longer describes the workspace, so drop it. */
     forget(): void {
         this.folders.clear();
-        this.changed.fire();
     }
 
     private index(folder: vscode.WorkspaceFolder): Promise<Index> {
@@ -170,7 +159,6 @@ export class Workspace implements vscode.Disposable {
 
     dispose(): void {
         this.watcher.dispose();
-        this.changed.dispose();
         this.folders.clear();
     }
 }
@@ -206,7 +194,7 @@ async function build(folder: vscode.WorkspaceFolder): Promise<Index> {
     // and every node directory holds a Spec. Globbing them also names the node
     // directories without needing to know how deep they are.
     const exclude = vscode.workspace
-        .getConfiguration('siniJump', folder)
+        .getConfiguration('sini', folder)
         .get<string>('exclude', '');
     const lean = await vscode.workspace.findFiles(
         new vscode.RelativePattern(folder, `**/_*/${SPEC}`),

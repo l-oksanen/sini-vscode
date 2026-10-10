@@ -1,10 +1,8 @@
 /**
  * The label encoding of the data model, both directions.
  *
- * **This module never imports `vscode`.** It is one of the two parts another
- * extension consumes as a library, through the `sini-vscode-jump/encoding`
- * entry point, and a library that can only load inside an extension host is not
- * much of a library. It also makes the tests ordinary `require`s.
+ * **This module never imports `vscode`**, so that it loads outside an extension
+ * host, and its tests are ordinary `require`s.
  *
  * Encoded names are the library's directory and file names, so this is what
  * relates a `.lean` file to the node it formalizes. There is no annotation to
@@ -13,8 +11,8 @@
  * The encoding is a prefix and nothing else. *Labels are simple* restricts a
  * label to `a`-`z`, `0`-`9` and `_`, which is already a Lean name and a file
  * name, so there is nothing to escape or translate; the `_` keeps an encoded
- * name clear of a Lean keyword and of the reserved `Spec`, `Tests` and
- * `Auxiliary`.
+ * name clear of a Lean keyword, of the reserved `Spec` and `Auxiliary`, and of
+ * the tests directory, whose name is the library's with `Tests` appended.
  *
  * Both directions return `undefined` rather than throwing. A blueprint with a
  * label the encoding does not admit, or a stray file in a node directory, is a

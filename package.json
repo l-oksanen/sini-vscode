@@ -1,13 +1,13 @@
 {
-  "name": "sini-vscode-jump",
-  "displayName": "sini: Lean ⇄ LaTeX blueprint jump",
-  "description": "Ctrl+click a LaTeX \\label to reach the Lean file that formalizes it, and go back to the statement in the PDF.",
+  "name": "sini-vscode",
+  "displayName": "sini: Lean ⇄ blueprint",
+  "description": "→'Show in PDF', ←Ctrl+click a \\label",
   "version": "0.1.0",
   "publisher": "l-oksanen",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/l-oksanen/sini-vscode-jump.git"
+    "url": "https://github.com/l-oksanen/sini-vscode.git"
   },
   "engines": {
     "vscode": "^1.96.0"
@@ -27,63 +27,27 @@
     "onLanguage:latex"
   ],
   "main": "./out/extension.js",
-  "exports": {
-    ".": {
-      "types": "./out/extension.d.ts",
-      "default": "./out/extension.js"
-    },
-    "./encoding": {
-      "types": "./out/encoding.d.ts",
-      "default": "./out/encoding.js"
-    },
-    "./nodes": {
-      "types": "./out/nodes.d.ts",
-      "default": "./out/nodes.js"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "encoding": [
-        "out/encoding.d.ts"
-      ],
-      "nodes": [
-        "out/nodes.d.ts"
-      ]
-    }
-  },
-  "files": [
-    "out",
-    "README.md",
-    "LICENSE"
-  ],
   "contributes": {
     "configuration": {
-      "title": "sini jump",
+      "title": "sini",
       "properties": {
-        "siniJump.exclude": {
+        "sini.exclude": {
           "type": "string",
           "default": "**/{.lake,.git,node_modules}/**",
           "scope": "window",
           "markdownDescription": "Files not searched. `.lake` matters: a project's Lake packages hold every Mathlib source, and searching them would cost far more than the rest of the workspace put together."
-        },
-        "siniJump.state": {
-          "type": "string",
-          "default": ".vscode/sini-state.json",
-          "scope": "window",
-          "markdownDescription": "A JSON file, relative to the workspace folder, giving each node's state as a colour for its label. `nodes` maps a label — or a path segment, which colours everything under it — to a key of `palette`, or to a colour of its own. Watched, so a generator rewriting it recolours the labels without a reload. Missing is the ordinary case: the labels then show uncoloured."
         }
       }
     },
     "commands": [
       {
-        "command": "siniJump.showInPdf",
-        "title": "Show this node's statement in the PDF",
-        "category": "sini"
+        "command": "sini.showInPdf",
+        "title": "Show in PDF"
       }
     ],
     "keybindings": [
       {
-        "command": "siniJump.showInPdf",
+        "command": "sini.showInPdf",
         "key": "ctrl+alt+b",
         "mac": "cmd+alt+b",
         "when": "editorLangId == lean4"
@@ -92,7 +56,7 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "siniJump.showInPdf",
+          "command": "sini.showInPdf",
           "when": "editorLangId == lean4"
         }
       ]
@@ -102,7 +66,9 @@
     "clean": "rm -rf out",
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
-    "test": "npm run clean && tsc -p . && node test/encoding.test.js && node test/nodes.test.js && node test/state.test.js && node test/links.test.js",
+    "link": "scripts/install.sh",
+    "unlink": "scripts/uninstall.sh",
+    "test": "npm run clean && tsc -p . && node test/encoding.test.js && node test/nodes.test.js && node test/links.test.js",
     "prepare": "npm run clean && tsc -p .",
     "package": "npm run clean && tsc -p . && vsce package"
   },

@@ -1,8 +1,7 @@
 // The label encoding, exercised as an ordinary library.
 //
 // No stand-in for `vscode` here, and that is the point: `encoding.ts` imports
-// nothing from the editor, so this is the same `require` a consumer of the
-// `sini-vscode-jump/encoding` entry point makes.
+// nothing from the editor, so it loads with an ordinary `require`.
 const path = require('path');
 const { decode, encode, isLabel } = require(
     path.join(__dirname, '..', 'out', 'encoding.js'));

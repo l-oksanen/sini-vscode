@@ -2,7 +2,6 @@
 const path = require('path');
 const {
     nodeOf,
-    sectionLineIn,
     texLabelAtInLine,
     texLabelsIn,
     uncommented,
@@ -40,11 +39,19 @@ for (const [file, role] of [
     ['_thm_svd/API.lean', 'api'],
     ['_thm_svd/Helpers.lean', 'helpers'],
     ['_thm_svd/Meta.lean', 'meta'],
-    // A test is named for what it tests, so any name in `Tests` is one.
-    ['_thm_svd/Tests/NonVacuity.lean', 'test'],
-    ['_thm_svd/Tests/Rank.lean', 'test'],
 ]) {
     check(`role of ${file}`, nodeOf(`${DIR}/${file}`), { label: 'thm_svd', role });
+}
+
+// A node's tests are in the tests directory, under the node's own path, and a
+// test is named for what it tests, so any name there is one -- at any depth.
+for (const file of [
+    'AutoIpTests/_part_1_fa/_ch_08_svd/_thm_svd/NonVacuity.lean',
+    'AutoIpTests/_part_1_fa/_ch_08_svd/_thm_svd/Rank.lean',
+    'AutoIpTests/_thm_svd/NonVacuity.lean',
+    '/home/me/p/AutoIpTests/_ch_08_svd/_thm_svd/NonVacuity.lean',
+]) {
+    check(`a test: ${file}`, nodeOf(file), { label: 'thm_svd', role: 'test' });
 }
 
 // A level instance's directory is named like a node's, and only what it holds
@@ -61,54 +68,13 @@ for (const other of [
     'AutoIp.lean',                          // the root module
     'AutoIpTests.lean',
     'AutoIp/_part_1_fa/_ch_08_svd/_thm_svd/Other.lean',  // no role the model gives
+    'AutoIpTests/Witnesses/Diagonal.lean',  // what the tests share, not a node's
+    'Tests/_thm_svd/NonVacuity.lean',       // a tests directory names its library
     'AutoIp/_part_1_fa/_ch_08_svd/_thm_svd/Spec.olean',
     'blueprint/blueprint.tex',
 ]) {
     check(`not a node: ${other}`, nodeOf(other), undefined);
 }
-
-// ------------------------------------------------- the node's own section
-
-// A Spec whose body is wrapped in `section <label>` gets a symbol from Lean's
-// own provider, and so a sticky scroll header. That line is what a reader
-// sees when scrolled into the file, so it is the line worth marking.
-const spec = [
-    '/-',
-    'Copyright (c) 2026 Tapio Helin. All rights reserved.',
-    '-/',
-    'module',
-    '',
-    'public import Mathlib.Topology.Algebra.Module.Spaces.ContinuousLinearMap',
-    'import Cite.Attribute',
-    '',
-    'section lem_clm_complete',
-    '',
-    'attribute [cite] ContinuousLinearMap.instCompleteSpace',
-    '',
-    'end lem_clm_complete',
-];
-check('the section that opens', sectionLineIn(spec, 'lem_clm_complete'), 8);
-check('and not the one that closes',
-    sectionLineIn(['end lem_clm_complete'], 'lem_clm_complete'), undefined);
-check('a namespace counts, being the same gesture with a scope',
-    sectionLineIn(['namespace thm_svd'], 'thm_svd'), 0);
-check('indented', sectionLineIn(['  section thm_svd  '], 'thm_svd'), 0);
-
-// A section of another name is another section: the file may hold several,
-// and only the node's own is the node's.
-for (const other of [
-    'section other',
-    'section thm_svd_extra',
-    'section thm_svd.inner',
-    'sections thm_svd',
-    'section',
-    '-- section thm_svd',
-    'section thm_svd where',
-]) {
-    check(`not the node's section: ${other}`, sectionLineIn([other], 'thm_svd'), undefined);
-}
-check('a file without one', sectionLineIn(['module', 'theorem x : True := trivial'], 'thm_svd'),
-    undefined);
 
 // ------------------------------------------------- `\label`
 

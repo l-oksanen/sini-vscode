@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
  * It takes no argument and works from the active editor, so there is nothing
  * for a caller to get wrong and one path for a failure to be reported on.
  */
-export const SHOW_IN_PDF = 'siniJump.showInPdf';
+export const SHOW_IN_PDF = 'sini.showInPdf';
 
 /** The LaTeX Workshop command that drives a forward search. */
 const SYNCTEX = 'latex-workshop.synctexto';

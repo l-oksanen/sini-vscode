@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { register as registerLinks } from './jump';
-import { Labels } from './label';
 import { SHOW_IN_PDF, openInPdf } from './links';
 import { nodeOf } from './nodes';
 import { Workspace } from './workspace';
@@ -15,7 +14,7 @@ function showInPdf(workspace: Workspace): vscode.Disposable {
             void vscode.window.showInformationMessage(
                 'This file is not a blueprint node: a node is a directory in the ' +
                     'library, and this is none of its `Spec.lean`, `API.lean`, ' +
-                    '`Helpers.lean`, `Meta.lean`, `Tests/`, or the facade beside it.',
+                    '`Helpers.lean`, `Meta.lean`, its tests, or the facade beside it.',
             );
             return;
         }
@@ -43,12 +42,11 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         workspace,
         registerLinks(workspace),
-        new Labels(workspace),
         showInPdf(workspace),
         // The setting changes what a scan finds, so the answer from before the
         // change stops being the answer.
         vscode.workspace.onDidChangeConfiguration((e) => {
-            if (e.affectsConfiguration('siniJump')) {
+            if (e.affectsConfiguration('sini')) {
                 workspace.forget();
             }
         }),

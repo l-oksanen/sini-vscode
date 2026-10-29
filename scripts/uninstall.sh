@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# Remove the symlink that `scripts/install.sh` made. The working tree is not
-# touched, and neither is anything that is not a symlink: a directory under
-# this extension's id was installed by VS Code, and is VS Code's to remove.
+# Remove the symlink that `scripts/install.sh` made, and its entry in VS
+# Code's registry. The working tree is not touched, and neither is anything
+# that is not a symlink: a directory under this extension's id was installed
+# by VS Code, and is VS Code's to remove.
 #
 # Usage: scripts/uninstall.sh [--extensions DIR]
 #
@@ -26,6 +27,11 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+if pgrep -x 'code|code-insiders' >/dev/null; then
+    echo "uninstall.sh: close VS Code first; it rewrites its extension registry" >&2
+    exit 1
+fi
+
 name=$(node -p "require('$repo/package.json').name")
 id=$(node -p "const p = require('$repo/package.json'); p.publisher + '.' + p.name")
 link=$extensions/$name
@@ -34,6 +40,22 @@ if [ -L "$link" ]; then
     target=$(readlink -- "$link")
     rm -- "$link"
     echo "unlinked: $link -> $target"
+    # Only the entry pointing at the link: one of the same id elsewhere is a
+    # copy VS Code installed.
+    node - "$extensions" "$name" <<'EOF'
+const fs = require('fs');
+const path = require('path');
+const [extensions, name] = process.argv.slice(2);
+
+const registry = path.join(extensions, 'extensions.json');
+if (!fs.existsSync(registry)) process.exit(0);
+const entries = JSON.parse(fs.readFileSync(registry, 'utf8'));
+const kept = entries.filter(e => e.relativeLocation !== name);
+if (kept.length === entries.length) process.exit(0);
+fs.writeFileSync(registry + '.new', JSON.stringify(kept));
+fs.renameSync(registry + '.new', registry);
+console.log(`unregistered: ${name} in ${registry}`);
+EOF
 elif [ -e "$link" ]; then
     # Only a link is this script's to remove. A directory here is an install
     # of VS Code's own making, whatever it is named.

@@ -162,12 +162,15 @@ scripts/uninstall.sh      # or npm run unlink
 
 The install is a symlink from VS Code's extensions directory to this
 repository, so what VS Code loads is the working tree: an edit needs a compile
-and **Developer: Reload Window**, and no repackaging. There is no mechanism
-behind it — VS Code reads every directory under `~/.vscode/extensions` and
-takes each one's identity from the `package.json` it finds, so a link is as
-good as a copy and the name of the link does not matter.
+and **Developer: Reload Window**, and no repackaging. The link alone is not
+enough: VS Code loads only what is registered in
+`~/.vscode/extensions/extensions.json`, and at startup marks any other
+directory there for removal in `.obsolete`. So the script registers the link
+under the extension's id and version, and refuses to run while VS Code does,
+since VS Code rewrites that file from memory. A new `version` needs the script
+run again.
 
-Two things do matter. `main` points into `out/`, which is generated and
+Two more things matter. `main` points into `out/`, which is generated and
 git-ignored, so the script compiles before linking — and `npm run clean` while
 VS Code is running leaves the extension without its code until the next
 compile. And an install of the same *id* already there, unpacked from a
@@ -176,8 +179,9 @@ and asks you to `code --uninstall-extension l-oksanen.sini-vscode`, or
 takes `--force`.
 
 `--extensions DIR`, or `VSCODE_EXTENSIONS`, installs somewhere else —
-`~/.vscode-insiders/extensions`, say. The uninstall removes only a symlink; a
-directory is VS Code's own install and VS Code's to remove.
+`~/.vscode-insiders/extensions`, say. The uninstall removes only a symlink and
+its registry entry; a directory is VS Code's own install and VS Code's to
+remove.
 
 ## Developing
 

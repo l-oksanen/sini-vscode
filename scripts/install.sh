@@ -3,13 +3,17 @@
 # Install this extension into VS Code as a symlink, so that what VS Code loads
 # is the working tree and an edit needs only a compile and a reloaded window.
 #
-# There is no special mechanism behind it. VS Code reads every directory under
-# its extensions directory at startup and takes each one's identity from the
-# `package.json` it finds there, so a symlink is as good as a copy and the name
-# of the link does not matter. What does matter is `main`, which points into
-# `out/`: that directory is generated and git-ignored, so it is compiled here
-# before the link is made. A `npm run clean` while VS Code is running leaves
-# the extension without its code until the next compile.
+# A link alone is not enough. VS Code loads only the extensions registered in
+# `extensions.json` in its extensions directory, and at startup marks any other
+# directory there for removal in `.obsolete`. So the link is registered too,
+# under the extension's id and version, and VS Code has to be closed while that
+# is done: it rewrites the registry from memory. An entry matches by version,
+# so a changed `version` in `package.json` needs this script run again.
+#
+# The other thing that matters is `main`, which points into `out/`: that
+# directory is generated and git-ignored, so it is compiled here before the
+# link is made. A `npm run clean` while VS Code is running leaves the
+# extension without its code until the next compile.
 #
 # Usage: scripts/install.sh [--force] [--extensions DIR]
 #
@@ -38,10 +42,16 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+if pgrep -x 'code|code-insiders' >/dev/null; then
+    echo "install.sh: close VS Code first; it rewrites its extension registry" >&2
+    exit 1
+fi
+
 # The link's name is this package's, and the id is what VS Code knows the
 # extension by -- the id is what two installs collide on, not the name.
 name=$(node -p "require('$repo/package.json').name")
 id=$(node -p "const p = require('$repo/package.json'); p.publisher + '.' + p.name")
+version=$(node -p "require('$repo/package.json').version")
 link=$extensions/$name
 
 # A conflicting install: a directory of the same id, from a .vsix or the
@@ -89,6 +99,44 @@ if [ ! -L "$link" ]; then
     ln -s -- "$repo" "$link"
     echo "linked: $link -> $repo"
 fi
+
+node - "$extensions" "$name" "$id" "$version" <<'EOF'
+const fs = require('fs');
+const path = require('path');
+const [extensions, name, id, version] = process.argv.slice(2);
+
+const registry = path.join(extensions, 'extensions.json');
+const entries = fs.existsSync(registry)
+    ? JSON.parse(fs.readFileSync(registry, 'utf8')) : [];
+const kept = entries.filter(e => e.identifier.id.toLowerCase() !== id.toLowerCase());
+kept.push({
+    identifier: { id },
+    version,
+    location: { $mid: 1, path: path.join(extensions, name), scheme: 'file' },
+    relativeLocation: name,
+});
+fs.writeFileSync(registry + '.new', JSON.stringify(kept));
+fs.renameSync(registry + '.new', registry);
+console.log(`registered: ${id} ${version} in ${registry}`);
+
+// A mark left by a start before the link was registered. VS Code deletes what
+// is marked only if its entry has an install time, which this one lacks, but
+// a stale mark should not be left waiting for that to change.
+const obsolete = path.join(extensions, '.obsolete');
+if (fs.existsSync(obsolete)) {
+    const marks = JSON.parse(fs.readFileSync(obsolete, 'utf8'));
+    const key = `${id}-${version}`;
+    if (key in marks) {
+        delete marks[key];
+        if (Object.keys(marks).length) {
+            fs.writeFileSync(obsolete, JSON.stringify(marks));
+        } else {
+            fs.unlinkSync(obsolete);
+        }
+        console.log(`unmarked: ${key} in ${obsolete}`);
+    }
+}
+EOF
 
 echo
 echo "Reload the window to load it: Developer: Reload Window."
